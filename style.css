@@ -231,3 +231,40 @@ footer {
     max-height: 80%;
     overflow: auto;
 }
+/* Botões de imagem, ouvir e remover */
+.img-btn-multi, .speak-btn, .remove-img {
+    background: var(--card-bg);
+    border: 2px solid var(--primary);
+    border-radius: 40px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    margin-right: 0.5rem;
+    transition: all 0.2s;
+    cursor: pointer;
+    color: var(--text-color);
+}
+
+.img-btn-multi:hover, .speak-btn:hover, .remove-img:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary-dark);
+}
+
+/* Botão remover foto tem cor de destaque opcional */
+.remove-img {
+    border-color: var(--danger);
+}
+.remove-img:hover {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: white;
+}
+
+/* Garantir que os botões dentro de .img-item fiquem alinhados */
+.img-item {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0.5rem;
+}
