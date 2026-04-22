@@ -81,28 +81,22 @@ function injectInstallButton() {
         installBtn.innerHTML = '📲';
         installBtn.style.display = 'none';
         installBtn.onclick = async () => {
-            if (!deferredInstallPrompt) {
-                alert('A instalação não está disponível neste momento. Se o app já estiver instalado, esse botão não aparecerá.');
-                return;
-            }
-
-            deferredInstallPrompt.prompt();
-            const choiceResult = await deferredInstallPrompt.userChoice;
-
-            if (choiceResult.outcome !== 'accepted') {
-                installBtn.style.display = 'inline-flex';
-            } else {
-                installBtn.style.display = 'none';
-            }
-
-            deferredInstallPrompt = null;
-        };
-
-        headerDiv.appendChild(installBtn);
+            if (deferredInstallPrompt) {
+                deferredInstallPrompt.prompt();
+        const choiceResult = await deferredInstallPrompt.userChoice;
+        if (choiceResult.outcome !== 'accepted') {
+            installBtn.style.display = 'inline-flex';
+        } else {
+            installBtn.style.display = 'none';
+        }
+        deferredInstallPrompt = null;
+    } else {
+        // Fallback: instrui o usuário
+        alert('Para instalar, use o menu do navegador: "Adicionar à tela inicial" ou "Instalar aplicativo".');
     }
-
-    installButtonInjected = true;
+  }
 }
+};
 
 function updateInstallButtonVisibility() {
     const installBtn = document.getElementById('installBtn');
@@ -110,10 +104,11 @@ function updateInstallButtonVisibility() {
 
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 
-    if (deferredInstallPrompt && !isStandalone) {
-        installBtn.style.display = 'inline-flex';
-    } else {
+    // Se já está instalado, esconde. Senão, mostra sempre (independente do deferredInstallPrompt)
+    if (isStandalone) {
         installBtn.style.display = 'none';
+    } else {
+        installBtn.style.display = 'inline-flex';
     }
 }
 
@@ -141,7 +136,7 @@ function injectHomeButton() {
     const homeBtn = document.createElement('button');
     homeBtn.id = 'homeBtn';
     homeBtn.setAttribute('aria-label', 'Início');
-    homeBtn.innerHTML = '🏠';
+    homeBtn.innerHTML = '<img src="icons/home-icon.png" alt="Início" style="width:32px; height:32px;">';
     homeBtn.onclick = () => voltarParaInicio();
     headerDiv.insertBefore(homeBtn, headerDiv.firstChild);
 
@@ -149,7 +144,7 @@ function injectHomeButton() {
         const installBtn = document.createElement('button');
         installBtn.id = 'installBtn';
         installBtn.setAttribute('aria-label', 'Instalar App');
-        installBtn.innerHTML = '📲 Instalar';
+        installBtn.innerHTML = '<img src="icons/install-icon.png" alt="Instalar" style="width:32px; height:32px;">';
         installBtn.onclick = instalarApp;
         installBtn.style.display = 'none';
         headerDiv.appendChild(installBtn);
@@ -304,7 +299,7 @@ function setupEventListeners() {
   if (configBtn) configBtn.onclick = mostrarConfiguracoes;
   if (helpBtn) {
     helpBtn.onclick = () => {
-      alert('Avalie cada item. Fotos podem ser anexadas. O app salva automaticamente e também pode ser salvo manualmente. Gere o relatório ao final.');
+      alert('Avalie cada item. Fotos podem ser anexadas. O app salva automaticamente e também pode ser salvo manualmente. Após concluir, gere o relatório ao final. No botão de Configurações, você pode personalizar o tamanho da fonte e as cores para melhor conforto visual. Para qualquer dúvida ou problema, entre em contato com o suporte, através do telefone (84) 9 8816-4322.');
     };
   }
 }
@@ -530,12 +525,10 @@ async function adicionarImagens(perguntaId, maxPorPergunta = 5) {
 
         // Processa cada arquivo
         for (const file of files) {
-            if (file.size > 2 * 1024 * 1024) {
-                alert(`A imagem ${file.name} excede 2MB. Ignorada.`);
-                continue;
-            }
+            // O alerta foi removido, a imagem será redimensionada mesmo se for maior que 2MB.
+// (nenhum código aqui)
             try {
-                const base64 = await redimensionarImagem(file);
+                const base64 = await redimensionarImagem(file, 1600, 0.9);
                 imagensAtuais.push(base64);
             } catch (err) {
                 console.error('Erro ao processar imagem:', err);
@@ -617,7 +610,7 @@ function atualizarListaImagens(perguntaId) {
     }
 }
 
-async function redimensionarImagem(file, maxWidth = 800, qualidade = 0.6) {
+async function redimensionarImagem(file, maxWidth = 1200, qualidade = 0.85) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = function(e) {
@@ -998,7 +991,8 @@ async function gerarHtmlRelatorioCompleto(aval, respostasMapLocal, percent, clas
 
     if (Array.isArray(resp.imagens) && resp.imagens.length) {
       resp.imagens.forEach(img => {
-        html += `<div><img src="${img}" style="max-width:200px; margin:5px 0;"></div>`;
+        html += `<div><img src="${img}" style="width:80%; max-width:600px; height:auto; margin:10px auto; display:block;">
+        </div>`;
       });
     }
 
