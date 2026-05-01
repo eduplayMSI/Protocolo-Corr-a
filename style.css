@@ -268,3 +268,115 @@ footer {
     align-items: center;
     margin: 0.5rem;
 }
+
+/* Carrossel infinito contínuo */
+.carrossel-container {
+  background: var(--card-bg);
+  border-radius: 24px;
+  overflow: hidden;
+  padding: 1rem;
+  margin-bottom: 2rem;
+}
+.carrossel-wrapper {
+  overflow: hidden;
+  width: 100%;
+}
+.carrossel-track {
+  display: flex;
+  width: calc(200%);
+  animation: slide 20s linear infinite;
+}
+.carrossel-slide {
+  flex: 0 0 auto;
+  width: 300px;        /* Largura fixa para cada imagem (ajuste conforme necessário) */
+  margin-right: 1rem;
+}
+.carrossel-slide img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 16px;
+}
+@keyframes slide {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* Responsividade: reduz a largura das imagens em telas pequenas */
+@media (max-width: 600px) {
+  .carrossel-slide {
+    width: 200px;
+  }
+}
+.btn-modulo {
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 24px;
+  padding: 2rem 1rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.btn-modulo:hover {
+  transform: scale(1.02);
+}
+@media (max-width: 600px) {
+  .btn-modulo { font-size: 1rem; padding: 1rem; }
+}
+.img-btn-rotas, .img-btn-multi {
+  background: var(--card-bg);
+  border: 2px solid var(--primary);
+  border-radius: 40px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  margin-right: 0.5rem;
+  cursor: pointer;
+  color: var(--text-color);
+}
+.img-btn-rotas:hover, .img-btn-multi:hover {
+  background: var(--primary);
+  color: white;
+}
+/* Papéis de parede para cada tema */
+body.theme-claro {
+  background-image: url('images/bg-claro.webp');
+  background-size: cover;
+  background-attachment: fixed;
+  background-position: center;
+}
+body.theme-dark {
+  background-image: url('images/bg-escuro.webp');
+  background-size: cover;
+  background-attachment: fixed;
+  background-position: center;
+}
+body.theme-high-contrast {
+  background-image: url('images/bg-alto-contraste.webp');
+  background-size: cover;
+  background-attachment: fixed;
+  background-position: center;
+}
+body.theme-low-vision {
+  background-image: url('images/bg-baixa-visao.webp');
+  background-size: cover;
+  background-attachment: fixed;
+  background-position: center;
+}
+body.theme-daltonism {
+  background-image: url('images/bg-daltonismo.webp');
+  background-size: cover;
+  background-attachment: fixed;
+  background-position: center;
+}
