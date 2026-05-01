@@ -1,32 +1,35 @@
 // app.js - Protocolo Corrêa (correção de múltiplas imagens + compartilhamento de PDF)
+// Flag para controlar se o módulo rotas já foi carregado
+let routesModuleLoaded = false;
+
 const PROTOCOLO_ITENS = [
-  { id: 'r1', categoria: 'Parte A — Rotas de Acesso', texto: 'Existem obstáculos fixos ou móveis ao longo do percurso até o espaço de recreação?', tipo: 'boolean', inverso: true, observacao: true },
-  { id: 'r2', categoria: 'Parte A — Rotas de Acesso', texto: 'A largura das passagens permite circulação adequada (aproximadamente ≥ 0,90m)?', tipo: 'escala3', opcoes: ['Adequada', 'Parcialmente adequada', 'Inadequada'] },
-  { id: 'r3', categoria: 'Parte A — Rotas de Acesso', texto: 'Como é caracterizado o piso predominante no percurso?', tipo: 'select', opcoes: ['Regular e firme', 'Irregular', 'Escorregadio', 'Outro'] },
-  { id: 'r4', categoria: 'Parte A — Rotas de Acesso', texto: 'Existem mudanças de nível (degraus, desníveis) sem alternativa acessível (rampa)?', tipo: 'boolean', inverso: true },
-  { id: 'r5', categoria: 'Parte A — Rotas de Acesso', texto: 'Quando existem rampas, apresentam condições adequadas de inclinação e uso?', tipo: 'escala3comNA', opcoes: ['Adequadas', 'Parcialmente adequadas', 'Inadequadas', 'Não se aplica'] },
-  { id: 'r6', categoria: 'Parte A — Rotas de Acesso', texto: 'Há sinalização visual e/ou tátil no percurso?', tipo: 'escala3simples', opcoes: ['Sim', 'Não', 'Parcial'] },
+  { id: 'r1', categoria: 'Rotas de Acesso', texto: 'Existem obstáculos fixos ou móveis ao longo do percurso até o espaço de recreação?', tipo: 'boolean', inverso: true, observacao: true },
+  { id: 'r2', categoria: 'Rotas de Acesso', texto: 'A largura das passagens permite circulação adequada (aproximadamente ≥ 0,90m)?', tipo: 'escala3', opcoes: ['Adequada', 'Parcialmente adequada', 'Inadequada'] },
+  { id: 'r3', categoria: 'Rotas de Acesso', texto: 'Como é caracterizado o piso predominante no percurso?', tipo: 'select', opcoes: ['Regular e firme', 'Irregular', 'Escorregadio', 'Outro'] },
+  { id: 'r4', categoria: 'Rotas de Acesso', texto: 'Existem mudanças de nível (degraus, desníveis) sem alternativa acessível (rampa)?', tipo: 'boolean', inverso: true },
+  { id: 'r5', categoria: 'Rotas de Acesso', texto: 'Quando existem rampas, apresentam condições adequadas de inclinação e uso?', tipo: 'escala3comNA', opcoes: ['Adequadas', 'Parcialmente adequadas', 'Inadequadas', 'Não se aplica'] },
+  { id: 'r6', categoria: 'Rotas de Acesso', texto: 'Há sinalização visual e/ou tátil no percurso?', tipo: 'escala3simples', opcoes: ['Sim', 'Não', 'Parcial'] },
 
-  { id: 'p1', categoria: 'Parte B — Acesso ao parque', texto: 'O acesso ao parque (portão/entrada) permite passagem adequada?', tipo: 'escala3', opcoes: ['Adequado', 'Parcialmente adequado', 'Inadequado'] },
-  { id: 'p2', categoria: 'Parte B — Acesso ao parque', texto: 'A circulação entre os brinquedos permite deslocamento livre (≈ 1,20m)?', tipo: 'escala3', opcoes: ['Adequada', 'Parcialmente adequada', 'Inadequada'] },
+  { id: 'p1', categoria: 'Acesso ao parque', texto: 'O acesso ao parque (portão/entrada) permite passagem adequada?', tipo: 'escala3', opcoes: ['Adequado', 'Parcialmente adequado', 'Inadequado'] },
+  { id: 'p2', categoria: 'Acesso ao parque', texto: 'A circulação entre os brinquedos permite deslocamento livre (≈ 1,20m)?', tipo: 'escala3', opcoes: ['Adequada', 'Parcialmente adequada', 'Inadequada'] },
 
-  { id: 'esc1', categoria: 'Parte C — Escorregador', texto: 'A plataforma possui proteção lateral (guarda-corpo/borda)?', tipo: 'boolean' },
-  { id: 'esc2', categoria: 'Parte C — Escorregador', texto: 'O acesso (escada/rampa) possui corrimão?', tipo: 'boolean' },
-  { id: 'esc3', categoria: 'Parte C — Escorregador', texto: 'A área de saída possui material amortecedor de impacto?', tipo: 'escala3simples', opcoes: ['Sim', 'Não', 'Parcial'] },
+  { id: 'esc1', categoria: 'Escorregador', texto: 'A plataforma possui proteção lateral (guarda-corpo/borda)?', tipo: 'boolean' },
+  { id: 'esc2', categoria: 'Escorregador', texto: 'O acesso (escada/rampa) possui corrimão?', tipo: 'boolean' },
+  { id: 'esc3', categoria: 'Escorregador', texto: 'A área de saída possui material amortecedor de impacto?', tipo: 'escala3simples', opcoes: ['Sim', 'Não', 'Parcial'] },
 
-  { id: 'bal1', categoria: 'Parte C — Balanço', texto: 'O balanço possui assento adaptado (ex: tipo cestinha ou com encosto)?', tipo: 'boolean' },
-  { id: 'bal2', categoria: 'Parte C — Balanço', texto: 'Há espaço lateral suficiente para transferência do usuário?', tipo: 'boolean' },
-  { id: 'bal3', categoria: 'Parte C — Balanço', texto: 'O assento possui encosto e/ou apoio lateral?', tipo: 'boolean' },
+  { id: 'bal1', categoria: 'Balanço', texto: 'O balanço possui assento adaptado (ex: tipo cestinha ou com encosto)?', tipo: 'boolean' },
+  { id: 'bal2', categoria: 'Balanço', texto: 'Há espaço lateral suficiente para transferência do usuário?', tipo: 'boolean' },
+  { id: 'bal3', categoria: 'Balanço', texto: 'O assento possui encosto e/ou apoio lateral?', tipo: 'boolean' },
 
-  { id: 'gang1', categoria: 'Parte C — Gangorra/Gira-gira', texto: 'O equipamento possui sistema de amortecimento de impacto?', tipo: 'boolean' },
-  { id: 'gang2', categoria: 'Parte C — Gangorra/Gira-gira', texto: 'O acesso ao equipamento ocorre por superfície nivelada?', tipo: 'boolean' },
-  { id: 'gang3', categoria: 'Parte C — Gangorra/Gira-gira', texto: 'O equipamento possui barras de apoio ou encosto?', tipo: 'boolean' },
+  { id: 'gang1', categoria: 'Gangorra/Gira-gira', texto: 'O equipamento possui sistema de amortecimento de impacto?', tipo: 'boolean' },
+  { id: 'gang2', categoria: 'Gangorra/Gira-gira', texto: 'O acesso ao equipamento ocorre por superfície nivelada?', tipo: 'boolean' },
+  { id: 'gang3', categoria: 'Gangorra/Gira-gira', texto: 'O equipamento possui barras de apoio ou encosto?', tipo: 'boolean' },
 
-  { id: 'seg1', categoria: 'Parte D — Segurança', texto: 'Há piso com capacidade de amortecimento na área de queda dos brinquedos?', tipo: 'escala3simples', opcoes: ['Sim', 'Não', 'Parcial'] },
-  { id: 'seg2', categoria: 'Parte D — Segurança', texto: 'Os equipamentos apresentam riscos (pontas cortantes, ferrugem, desgaste)?', tipo: 'boolean', inverso: true, observacao: true },
+  { id: 'seg1', categoria: 'Segurança', texto: 'Há piso com capacidade de amortecimento na área de queda dos brinquedos?', tipo: 'escala3simples', opcoes: ['Sim', 'Não', 'Parcial'] },
+  { id: 'seg2', categoria: 'Segurança', texto: 'Os equipamentos apresentam riscos (pontas cortantes, ferrugem, desgaste)?', tipo: 'boolean', inverso: true, observacao: true },
 
-  { id: 'obs1', categoria: 'Parte E — Observações', texto: 'Descreva dificuldades, barreiras, riscos ou aspectos relevantes observados no espaço.', tipo: 'text', obrigatorio: true },
-  { id: 'obs2', categoria: 'Parte E — Observações', texto: 'Registro visual (imagens do espaço avaliado)', tipo: 'imagemMultipla' }
+  { id: 'obs1', categoria: 'Observações', texto: 'Descreva dificuldades, barreiras, riscos ou aspectos relevantes observados no espaço.', tipo: 'text', obrigatorio: true },
+  { id: 'obs2', categoria: 'Observações', texto: 'Registro visual (imagens do espaço avaliado)', tipo: 'imagemMultipla' }
 ];
 
 let deferredPrompt = null;
@@ -62,70 +65,73 @@ const INDICE_ULTIMA_PERGUNTA_PROGRESSO = PROTOCOLO_ITENS.findIndex(item => item.
 let currentAvaliacao = null;
 let respostasMap = new Map();
 let houveMudancaNaoSalva = false;
+// ========== INSTALAÇÃO DO PWA (CORRIGIDO) ==========
 let deferredInstallPrompt = null;
-let installButtonInjected = false;
 
-function injectInstallButton() {
-    if (installButtonInjected) return;
-
-    const headerDiv = document.querySelector('header .header-actions');
-    if (!headerDiv) return;
-
-    let installBtn = document.getElementById('installBtn');
-    if (!installBtn) {
-        installBtn = document.createElement('button');
-        installBtn.id = 'installBtn';
-        installBtn.type = 'button';
-        installBtn.setAttribute('aria-label', 'Instalar aplicativo');
-        installBtn.title = 'Instalar aplicativo';
-        installBtn.innerHTML = '📲';
-        installBtn.style.display = 'none';
-        installBtn.onclick = async () => {
-            if (deferredInstallPrompt) {
-                deferredInstallPrompt.prompt();
-        const choiceResult = await deferredInstallPrompt.userChoice;
-        if (choiceResult.outcome !== 'accepted') {
-            installBtn.style.display = 'inline-flex';
-        } else {
-            installBtn.style.display = 'none';
-        }
-        deferredInstallPrompt = null;
-    } else {
-        // Fallback: instrui o usuário
-        alert('Para instalar, use o menu do navegador: "Adicionar à tela inicial" ou "Instalar aplicativo".');
-    }
+async function instalarApp() {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    if (outcome === 'accepted') console.log('Instalação aceita');
+    deferredInstallPrompt = null;
+  } else {
+    alert('Use o menu do navegador: "Adicionar à tela inicial"');
   }
 }
-};
 
-function updateInstallButtonVisibility() {
-    const installBtn = document.getElementById('installBtn');
-    if (!installBtn) return;
+// Função que insere os botões Home e Instalar no header
+function injectHomeButton() {
+  if (document.getElementById('homeBtn')) return;
+  const headerDiv = document.querySelector('header .header-actions');
+  if (!headerDiv) return;
 
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const homeBtn = document.createElement('button');
+  homeBtn.id = 'homeBtn';
+  homeBtn.setAttribute('aria-label', 'Início');
+  homeBtn.innerHTML = '<img src="icons/home-icon.png" alt="Início" style="width:32px; height:32px;">';
+  homeBtn.onclick = () => voltarParaInicio();
+  headerDiv.insertBefore(homeBtn, headerDiv.firstChild);
 
-    // Se já está instalado, esconde. Senão, mostra sempre (independente do deferredInstallPrompt)
-    if (isStandalone) {
-        installBtn.style.display = 'none';
-    } else {
-        installBtn.style.display = 'inline-flex';
-    }
+  if (!document.getElementById('installBtn')) {
+    const installBtn = document.createElement('button');
+    installBtn.id = 'installBtn';
+    installBtn.setAttribute('aria-label', 'Instalar App');
+    installBtn.innerHTML = '<img src="icons/install-icon.png" alt="Instalar" style="width:32px; height:32px;">';
+    installBtn.style.display = 'none';
+    installBtn.onclick = instalarApp;
+    headerDiv.appendChild(installBtn);
+  }
 }
 
 function setupPWAInstallPrompt() {
-    injectInstallButton();
-    updateInstallButtonVisibility();
+  // Garantir que o botão de instalação existe
+  let installBtn = document.getElementById('installBtn');
+  if (!installBtn) {
+    const headerDiv = document.querySelector('header .header-actions');
+    if (headerDiv) {
+      installBtn = document.createElement('button');
+      installBtn.id = 'installBtn';
+      installBtn.setAttribute('aria-label', 'Instalar aplicativo');
+      installBtn.innerHTML = '📲';
+      installBtn.style.display = 'none';
+      installBtn.onclick = instalarApp;
+      headerDiv.appendChild(installBtn);
+    }
+  }
 
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredInstallPrompt = e;
-        updateInstallButtonVisibility();
-    });
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if (installBtn) installBtn.style.display = isStandalone ? 'none' : 'inline-flex';
 
-    window.addEventListener('appinstalled', () => {
-        deferredInstallPrompt = null;
-        updateInstallButtonVisibility();
-    });
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    if (!isStandalone && installBtn) installBtn.style.display = 'inline-flex';
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    if (installBtn) installBtn.style.display = 'none';
+  });
 }
 
 function injectHomeButton() {
@@ -263,33 +269,33 @@ function agruparPerguntasPorCategoria() {
 
 async function init() {
   try {
-    if (document.readyState === 'loading') {
-      await new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, { once: true }));
-    }
-
-     await openDB();
-     injectHomeButton();
-     setupPWAInstallPrompt();
-     aplicarConfiguracoes();
-     await renderDashboard();
-     setupEventListeners();
-
+    await openDB();
+    injectHomeButton();                // Cria os botões Home e Instalar
+    await loadRoutesModule();         // Carrega o módulo das rotas
+    await renderPaginaInicial();      // Nova página inicial
+    setupEventListeners();            // Configura eventos de ajuda e configurações
+    setupPWAInstallPrompt();          // Configura o evento de instalação
+    aplicarConfiguracoes();
+    // Iniciar música de fundo se estiver habilitada
+    const audio = document.getElementById('bgMusic');
+    if (audio && localStorage.getItem('musicEnabled') !== 'false') {
+    audio.play().catch(e => console.log('Autoplay bloqueado, usuário precisa interagir'));
+  }           // Aplica tema e fonte salvos
     const status = document.getElementById('status');
-    if (status) status.innerHTML = '✅ Banco de dados pronto | Modo offline';
+    if (status) status.innerHTML = '✅ Pronto para uso offline';
   } catch (error) {
-    console.error('Falha na inicialização:', error);
-    const main = document.getElementById('main-content');
-    if (main) {
-      main.innerHTML = `
-        <div class="card" style="color:red;">
-          <h2>Erro ao iniciar o aplicativo</h2>
-          <p>${escapeHtml(error?.message || String(error))}</p>
-          <p>Verifique se seu navegador suporta IndexedDB e tente recarregar.</p>
-          <button onclick="location.reload()">Recarregar</button>
-        </div>
-      `;
-    }
+    console.error('Erro na inicialização:', error);
   }
+  function iniciarMusicaAposInteracao() {
+  const audio = document.getElementById('bgMusic');
+  if (audio && audio.paused && localStorage.getItem('musicEnabled') !== 'false') {
+    audio.play().catch(e => console.log('Ainda não foi possível iniciar'));
+    document.removeEventListener('click', iniciarMusicaAposInteracao);
+    document.removeEventListener('touchstart', iniciarMusicaAposInteracao);
+  }
+  }
+    document.addEventListener('click', iniciarMusicaAposInteracao);
+    document.addEventListener('touchstart', iniciarMusicaAposInteracao);
 }
 
 function setupEventListeners() {
@@ -299,7 +305,14 @@ function setupEventListeners() {
   if (configBtn) configBtn.onclick = mostrarConfiguracoes;
   if (helpBtn) {
     helpBtn.onclick = () => {
-      alert('Avalie cada item. Fotos podem ser anexadas. O app salva automaticamente e também pode ser salvo manualmente. Após concluir, gere o relatório ao final. No botão de Configurações, você pode personalizar o tamanho da fonte e as cores para melhor conforto visual. Para qualquer dúvida ou problema, entre em contato com o suporte, através do telefone (84) 9 8816-4322.');
+      alert('📌 Como usar este app:\n\n' +
+  '✔️ Para cada pergunta, marque a opção que melhor representa a realidade da sua escola.\n' +
+  '✔️ Você pode anexar até 5 fotos por item – use o botão 📷 Adicionar Foto.\n' +
+  '✔️ As respostas são salvas automaticamente ao clicar em "Salvar Respostas".\n' +
+  '✔️ Após preencher todas as perguntas, clique em "Finalizar e ver Relatório" para gerar um PDF.\n' +
+  '✔️ No menu Configurações, ajuste o tamanho da fonte, o tema e a música de fundo conforme sua necessidade.\n\n' +
+  '💡 Dica: use os botões 🔊 Ouvir para escutar cada pergunta em voz alta.\n\n' +
+  '📞 Precisa de ajuda? Entre em contato conosco pelo telefone (84) 9 8816-4322.');
     };
   }
 }
@@ -332,15 +345,21 @@ async function salvarTodasRespostas() {
 async function voltarParaInicio() {
   if (currentAvaliacao && houveMudancaNaoSalva) {
     const desejaSalvar = confirm('Deseja salvar as respostas antes de sair?');
-    if (desejaSalvar) {
-      await salvarTodasRespostas();
+    if (window.routesModule && window.routesModule.currentAvaliacaoRotas && window.routesModule.currentAvaliacaoRotas.id) {
+      if (desejaSalvar) {
+        await salvarTodasRespostas();
+        if (typeof window.routesModule.salvarTodasRespostasRotas === 'function') {
+      await window.routesModule.salvarTodasRespostasRotas();
+    }
+      } else if (currentAvaliacao && currentAvaliacao.id) {
+    await salvarTodasRespostas();
+      }
     }
   }
-
   currentAvaliacao = null;
   respostasMap = new Map();
   limparMudancaPendente();
-  await renderDashboard();
+  await renderPaginaInicial();   // <--- ANTES ERA renderDashboard()
 }
 
 async function renderDashboard() {
@@ -371,6 +390,7 @@ async function renderDashboard() {
               <button class="btn-secondary continuarBtn" data-id="${a.id}">Continuar</button>
               <button class="btn-outline deletarBtn" data-id="${a.id}">Deletar</button>
               <button class="btn-outline relatorioBtn btn-relatorio-dashboard" data-id="${a.id}" ${Number(a.progresso || 0) < (INDICE_ULTIMA_PERGUNTA_PROGRESSO + 1) ? 'disabled aria-disabled="true" style="opacity:0.6;pointer-events:none;"' : ''}>📄 Relatório</button>
+              <button id="voltarInicioParque" class="btn-outline" style="margin-top:0.5rem;">← Voltar ao início</button>
             </div>
           </div>
         `).join('')
@@ -408,6 +428,9 @@ async function renderDashboard() {
       if (!isNaN(id)) await mostrarMenuRelatorio(id);
     });
   });
+  document.getElementById('voltarInicioParque')?.addEventListener('click', () => {
+  renderPaginaInicial();
+});
 }
 
 async function iniciarNovaAvaliacao() {
@@ -528,7 +551,7 @@ async function adicionarImagens(perguntaId, maxPorPergunta = 5) {
             // O alerta foi removido, a imagem será redimensionada mesmo se for maior que 2MB.
 // (nenhum código aqui)
             try {
-                const base64 = await redimensionarImagem(file, 1600, 0.9);
+                const base64 = await redimensionarImagem(file, 1200, 0.9);
                 imagensAtuais.push(base64);
             } catch (err) {
                 console.error('Erro ao processar imagem:', err);
@@ -610,7 +633,7 @@ function atualizarListaImagens(perguntaId) {
     }
 }
 
-async function redimensionarImagem(file, maxWidth = 1200, qualidade = 0.85) {
+async function redimensionarImagem(file, maxWidth = 1200, qualidade = 0.9) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = function(e) {
@@ -769,26 +792,37 @@ async function renderFormulario() {
     </div>
   `;
 
+  html += `
+  <div class="card">
+    <button id="voltarDashboardParque" class="btn-outline">← Voltar ao histórico</button>
+  </div>
+  `;
+
   const main = document.getElementById('main-content');
   if (!main) return;
   main.innerHTML = html;
 
   bindFormularioEventos();
-
-  document.getElementById('salvarBtnTop')?.addEventListener('click', salvarTodasRespostas);
-  document.getElementById('salvarBtnBottom')?.addEventListener('click', salvarTodasRespostas);
-
-  document.getElementById('finalizarBtnTop')?.addEventListener('click', async () => {
-    if (!formularioCompletoParaRelatorio()) return;
-    await salvarTodasRespostas();
-    await mostrarMenuRelatorio(currentAvaliacao.id, respostasMap);
+  document.getElementById('voltarDashboardParque')?.addEventListener('click', () => {
+  renderDashboard();
   });
 
-  document.getElementById('finalizarBtnBottom')?.addEventListener('click', async () => {
+    // Botões de salvar
+  const salvarTop = document.getElementById('salvarBtnTop');
+  const salvarBottom = document.getElementById('salvarBtnBottom');
+  if (salvarTop) salvarTop.onclick = async () => { await salvarTodasRespostas(); };
+  if (salvarBottom) salvarBottom.onclick = async () => { await salvarTodasRespostas(); };
+
+  // Botões de finalizar
+  const finalizarTop = document.getElementById('finalizarBtnTop');
+  const finalizarBottom = document.getElementById('finalizarBtnBottom');
+  const acaoFinalizar = async () => {
     if (!formularioCompletoParaRelatorio()) return;
     await salvarTodasRespostas();
-    await mostrarMenuRelatorio(currentAvaliacao.id, respostasMap);
-  });
+    await mostrarMenuRelatorio(currentAvaliacao.id, new Map(respostasMap));
+  };
+  if (finalizarTop) finalizarTop.onclick = acaoFinalizar;
+  if (finalizarBottom) finalizarBottom.onclick = acaoFinalizar;
 
   atualizarProgresso();
 }
@@ -1078,9 +1112,11 @@ async function gerarPDFComDados(htmlContent, nomeEscola) {
         a.download = `relatorio-${String(nomeEscola || 'escola').replace(/[^\w\-]+/g, '_')}.pdf`;
         a.click();
         URL.revokeObjectURL(url);
+        return true;
     } catch (error) {
         console.error('Erro ao gerar PDF:', error);
         alert('Erro ao gerar PDF. Tente novamente.');
+        return false;
     }
 }
 
@@ -1173,6 +1209,10 @@ async function mostrarMenuRelatorio(idAvaliacao, respostasMapParam = null) {
         const { percent, classificacao } = calcularPontuacao(respostasMapTemp);
         const htmlRelatorio = await gerarHtmlRelatorioCompleto(aval, respostasMapTemp, percent, classificacao);
         
+                // Remove modal anterior se existir
+        const modalExistente = document.querySelector('.modal');
+        if (modalExistente) modalExistente.remove();
+
         const modal = document.createElement('div');
         modal.className = 'modal';
         modal.innerHTML = `
@@ -1185,20 +1225,25 @@ async function mostrarMenuRelatorio(idAvaliacao, respostasMapParam = null) {
             </div>
         `;
         document.body.appendChild(modal);
-        
+
+        // Função para fechar o modal com segurança
+        const fecharModal = () => {
+            if (modal && modal.parentNode) modal.remove();
+        };
+
         document.getElementById('btnPdf').onclick = async () => {
             await gerarPDFComDados(htmlRelatorio, aval.escola);
-            modal.remove();
+            fecharModal();
         };
         document.getElementById('btnWhatsapp').onclick = async () => {
             await compartilharWhatsAppComDados(aval, respostasMapTemp, percent, classificacao);
-            modal.remove();
+            fecharModal();
         };
         document.getElementById('btnEmail').onclick = async () => {
             await compartilharEmailComDados(aval, respostasMapTemp, percent, classificacao);
-            modal.remove();
+            fecharModal();
         };
-        document.getElementById('fecharModalRel').onclick = () => modal.remove();
+        document.getElementById('fecharModalRel').onclick = fecharModal;
         
     } catch (error) {
         console.error('Erro ao abrir menu de relatório:', error);
@@ -1225,6 +1270,10 @@ function mostrarConfiguracoes() {
         <input type="range" id="fontSlider" min="100" max="200" step="5" value="100">
         <span id="fontValue">100%</span>
       </div>
+      <div style="margin: 1rem 0;">
+        <label>🎵 Música de fundo:</label>
+        <button id="toggleMusicBtn" class="btn-outline" style="margin-left: 1rem;">▶️ Ligar</button>
+      </div>
       <button id="salvarConfig" class="btn-primary">Salvar</button>
       <button id="fecharModal" class="btn-outline">Fechar</button>
     </div>
@@ -1234,10 +1283,37 @@ function mostrarConfiguracoes() {
   const temaSelect = document.getElementById('temaSelect');
   const fontSlider = document.getElementById('fontSlider');
   const fontValue = document.getElementById('fontValue');
+  const toggleMusicBtn = document.getElementById('toggleMusicBtn');
+  const audio = document.getElementById('bgMusic');
 
+  // Carregar preferências salvas
   temaSelect.value = localStorage.getItem('tema') || 'claro';
   fontSlider.value = localStorage.getItem('fontSize') || '100';
   fontValue.innerText = `${fontSlider.value}%`;
+
+  // Estado da música salvo no localStorage
+  const musicEnabled = localStorage.getItem('musicEnabled') !== 'false'; // padrão true
+  if (!musicEnabled && audio) {
+    audio.pause();
+    toggleMusicBtn.textContent = '⏹️ Desligar';
+  } else {
+    if (audio) audio.play().catch(e => console.log('Autoplay bloqueado pelo navegador'));
+    toggleMusicBtn.textContent = '▶️ Ligar';
+  }
+
+  // Atualizar botão e estado
+  toggleMusicBtn.onclick = () => {
+    const isPlaying = audio && !audio.paused;
+    if (isPlaying) {
+      audio.pause();
+      localStorage.setItem('musicEnabled', 'false');
+      toggleMusicBtn.textContent = '▶️ Ligar';
+    } else {
+      audio.play().catch(e => alert('Para ouvir, interaja primeiro com a página (ex: toque em qualquer lugar)'));
+      localStorage.setItem('musicEnabled', 'true');
+      toggleMusicBtn.textContent = '⏹️ Desligar';
+    }
+  };
 
   fontSlider.oninput = () => {
     fontValue.innerText = `${fontSlider.value}%`;
@@ -1246,6 +1322,7 @@ function mostrarConfiguracoes() {
   document.getElementById('salvarConfig').onclick = () => {
     localStorage.setItem('tema', temaSelect.value);
     localStorage.setItem('fontSize', fontSlider.value);
+    // O estado da música já é salvo no toggle
     aplicarConfiguracoes();
     modal.remove();
   };
@@ -1275,6 +1352,62 @@ function escapeHtml(str) {
 
 function escapeHtmlAttr(str) {
   return escapeHtml(str);
+}
+
+// Carregar módulo de rotas dinamicamente (sem conflito)
+function loadRoutesModule() {
+  if (routesModuleLoaded) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'routes-module.js';
+    script.onload = () => { routesModuleLoaded = true; resolve(); };
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+async function renderPaginaInicial() {
+  await loadRoutesModule();
+  const main = document.getElementById('main-content');
+  if (!main) return;
+
+  // Cria o HTML do carrossel com duas cópias das imagens para efeito infinito
+  const imagens = [
+    "icons/placeholder-400x400-1.png",
+    "icons/placeholder-400x400-2.png",
+    "icons/placeholder-400x400-3.png",
+    "icons/placeholder-400x400-4.png",
+    "icons/placeholder-400x400-5.png",
+    "icons/placeholder-400x400-6.png"
+  ];
+  // Duplica as imagens para criar o loop contínuo sem interrupção
+  const todasImagens = [...imagens, ...imagens];
+
+  main.innerHTML = `
+    <div class="carrossel-container">
+      <div class="carrossel-wrapper">
+        <div class="carrossel-track">
+          ${todasImagens.map(src => `<div class="carrossel-slide"><img src="${src}" alt="Acessibilidade"></div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="grid-2" style="gap: 1rem;">
+      <button id="btnRotas" class="btn-modulo">🚶 Avaliação de Rotas</button>
+      <button id="btnParque" class="btn-modulo">🪁 Avaliação do Parque</button>
+    </div>
+  `;
+
+  // Eventos dos botões
+  document.getElementById('btnRotas')?.addEventListener('click', () => {
+    if (window.routesModule && window.routesModule.renderDashboardRotas) {
+      window.routesModule.renderDashboardRotas();
+    } else {
+      alert('Carregando módulo de Rotas... Recarregue se necessário.');
+    }
+  });
+  document.getElementById('btnParque')?.addEventListener('click', () => {
+    renderDashboard(); // função original do app.js
+  });
 }
 
 init();
