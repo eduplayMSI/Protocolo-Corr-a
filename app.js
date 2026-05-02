@@ -551,7 +551,7 @@ async function adicionarImagens(perguntaId, maxPorPergunta = 5) {
             // O alerta foi removido, a imagem será redimensionada mesmo se for maior que 2MB.
 // (nenhum código aqui)
             try {
-                const base64 = await redimensionarImagem(file, 1200, 0.9);
+                const base64 = await redimensionarImagem(file, 800, 0.9);
                 imagensAtuais.push(base64);
             } catch (err) {
                 console.error('Erro ao processar imagem:', err);
@@ -945,6 +945,8 @@ function bindFormularioEventos() {
       e.stopPropagation();
       const texto = btn.getAttribute('data-text') || '';
       const utterance = new SpeechSynthesisUtterance(texto);
+      utterance.onerror = (e) => console.error('Erro na síntese de fala:', e);
+      utterance.lang = 'pt-BR';
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
     };
