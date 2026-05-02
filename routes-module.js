@@ -16,14 +16,14 @@ const PROTOCOLO_ITENS_ROTAS = [
   { id: 'r10', categoria: 'Circulação', texto: 'A largura dos corredores é adequada (≥ 1,20m)?', tipo: 'escala3', opcoes: ['Adequada', 'Parcialmente adequada (1,20m - 1,50m)', 'Inadequada (< 1,20m)'] },
   { id: 'r11', categoria: 'Mudança de nível', texto: 'Rampas possuem corrimão e inclinação adequada?', tipo: 'escala3comNA', opcoes: ['Adequadas', 'Parcialmente adequadas', 'Inadequadas', 'Não se aplica'] },
   { id: 'r12', categoria: 'Mudança de nível', texto: 'Escadas possuem corrimão em ambos os lados?', tipo: 'escala3comNA', opcoes: ['Sim', 'Parcial', 'Não', 'Não se aplica'] },
-  { id: 'r13', categoria: 'Ambientes', texto: 'O piso do local de recebimento dos alunos é antiderrapante?', tipo: 'boolean' },
-  { id: 'r14', categoria: 'Ambientes', texto: 'O piso das salas de aula é antiderrapante?', tipo: 'boolean' },
-  { id: 'r15', categoria: 'Ambientes', texto: 'O piso do refeitório é antiderrapante?', tipo: 'boolean' },
-  { id: 'r16', categoria: 'Ambientes', texto: 'O piso do bebedouro é antiderrapante?', tipo: 'boolean' },
-  { id: 'r17', categoria: 'Ambientes', texto: 'O bebedouro possui dupla altura de torneira e base recuada?', tipo: 'boolean' },
-  { id: 'r18', categoria: 'Ambientes', texto: 'O piso do banheiro é antiderrapante?', tipo: 'boolean' },
-  { id: 'r19', categoria: 'Ambientes', texto: 'O banheiro possui barras de apoio e box adaptado?', tipo: 'boolean' },
-  { id: 'r20', categoria: 'Mudança de nível', texto: 'Existem mudanças de nível (degraus) sem rampa alternativa acessível?', tipo: 'boolean', inverso: true, observacao: true },
+  { id: 'r13', categoria: 'Mudança de nível', texto: 'Existem mudanças de nível (degraus) sem rampa alternativa acessível?', tipo: 'boolean', inverso: true, observacao: true },
+  { id: 'r14', categoria: 'Ambientes', texto: 'O piso do local de recebimento dos alunos é antiderrapante?', tipo: 'boolean' },
+  { id: 'r15', categoria: 'Ambientes', texto: 'O piso das salas de aula é antiderrapante?', tipo: 'boolean' },
+  { id: 'r16', categoria: 'Ambientes', texto: 'O piso do refeitório é antiderrapante?', tipo: 'boolean' },
+  { id: 'r17', categoria: 'Ambientes', texto: 'O piso do bebedouro é antiderrapante?', tipo: 'boolean' },
+  { id: 'r18', categoria: 'Ambientes', texto: 'O bebedouro possui dupla altura de torneira e base recuada?', tipo: 'boolean' },
+  { id: 'r19', categoria: 'Ambientes', texto: 'O piso do banheiro é antiderrapante?', tipo: 'boolean' },
+  { id: 'r20', categoria: 'Ambientes', texto: 'O banheiro possui barras de apoio e box adaptado?', tipo: 'boolean' },
   { id: 'obs_rotas', categoria: 'Observações', texto: 'Descreva outras barreiras ou aspectos relevantes para a acessibilidade das rotas (opcional).', tipo: 'text', obrigatorio: true },
   { id: 'img_rotas', categoria: 'Registro visual', texto: 'Imagens das rotas avaliadas (opcional)', tipo: 'imagemMultipla' }
 ];
@@ -32,6 +32,45 @@ const PROTOCOLO_ITENS_ROTAS = [
 let currentAvaliacaoRotas = null;
 let respostasMapRotas = new Map();
 let houveMudancaRotas = false;
+
+// Função de escape para HTML (evita injeção e garante segurança)
+function escapeHtml(str) {
+  if (str === undefined || str === null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+async function redimensionarImagemRotas(file, maxWidth = 800, qualidade = 0.7) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const base64 = canvas.toDataURL('image/jpeg', qualidade);
+        resolve(base64);
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 function normalizarRespostaRotas(resp) {
   if (!resp || typeof resp !== 'object') return { valor: '', observacao: '', outroTexto: '', imagens: [] };
@@ -138,19 +177,33 @@ async function gerarHtmlRelatorioCompletoRotas(aval, respostasMapLocal, percent,
       <p><strong>Classificação:</strong> ${escapeHtml(classificacao)} (${Number(percent || 0).toFixed(1)}%)</p>
       <h2>Respostas detalhadas</h2>
   `;
-  // Mostrar apenas perguntas obrigatórias (r1 a r20)
+
+  // Percorre todas as perguntas obrigatórias (r1 a r20)
   for (let i = 0; i < INDICE_ULTIMA_PERGUNTA_ROTAS; i++) {
     const item = PROTOCOLO_ITENS_ROTAS[i];
     const resp = normalizarRespostaRotas(respostasMapLocal.get(item.id));
     const valorTexto = resp.valor && resp.valor.trim() !== '' ? resp.valor : 'Não respondido';
+
     html += `<div style="margin-bottom:12px;">
         <p><strong>${escapeHtml(item.texto)}</strong><br>Resposta: ${escapeHtml(valorTexto)}</p>`;
+
     if (resp.observacao && resp.observacao.trim()) {
       html += `<p><em>Observação:</em> ${escapeHtml(resp.observacao)}</p>`;
     }
+
+    // ----- ADICIONA AS IMAGENS DA PERGUNTA (se existirem) -----
+    if (Array.isArray(resp.imagens) && resp.imagens.length) {
+      html += `<div style="margin-top:8px;">`;
+      resp.imagens.forEach(img => {
+        html += `<img src="${img}" style="max-width:200px; max-height:200px; margin:5px; border:1px solid #ccc; border-radius:8px;">`;
+      });
+      html += `</div>`;
+    }
+
     html += `</div>`;
   }
-  // Adicionar observação opcional
+
+  // Adicionar observação opcional (obs_rotas)
   const obsItem = PROTOCOLO_ITENS_ROTAS.find(i => i.id === 'obs_rotas');
   if (obsItem) {
     const resp = normalizarRespostaRotas(respostasMapLocal.get(obsItem.id));
@@ -158,17 +211,19 @@ async function gerarHtmlRelatorioCompletoRotas(aval, respostasMapLocal, percent,
       html += `<div><strong>${escapeHtml(obsItem.texto)}</strong><br>${escapeHtml(resp.valor)}</div>`;
     }
   }
-  // Adicionar imagens da pergunta opcional
+
+  // Adicionar imagens da pergunta opcional img_rotas (se houver)
   const imgItem = PROTOCOLO_ITENS_ROTAS.find(i => i.id === 'img_rotas');
   if (imgItem) {
     const resp = normalizarRespostaRotas(respostasMapLocal.get(imgItem.id));
     if (resp.imagens && resp.imagens.length) {
-      html += `<h3>Imagens anexadas</h3>`;
+      html += `<h3>Imagens adicionais</h3>`;
       resp.imagens.forEach(img => {
-        html += `<div><img src="${img}" style="max-width:80%; margin:10px auto;"></div>`;
+        html += `<div><img src="${img}" style="max-width:300px; margin:10px auto; display:block;"></div>`;
       });
     }
   }
+
   html += `</div>`;
   return html;
 }
@@ -248,27 +303,28 @@ async function renderDashboardRotas() {
   const todas = await listarAvaliacoes();
   const avaliacoes = todas.filter(a => a.tipo === 'rotas');
   const html = `
-    <div class="card">
-      <button id="novaRotasBtn" class="btn-primary">➕ Nova Avaliação</button>
-    </div>
-    <div class="card">
-      <h2>Histórico de Avaliações de Rotas</h2>
-      ${avaliacoes.length === 0 ? '<p>Nenhuma avaliação salva.</p>' :
-        avaliacoes.map(a => `
-          <div style="margin:1rem 0; padding:0.5rem 0; border-bottom:1px solid var(--border);">
-            <strong>${escapeHtml(a.escola || 'Escola')}</strong> - ${escapeHtml(a.local || 'Local')}<br>
-            <small>${new Date(a.data).toLocaleString()}</small>
-            <div class="grid-2" style="margin-top:0.5rem;">
-              <button class="btn-secondary continuarRotasBtn" data-id="${a.id}">Continuar</button>
-              <button class="btn-outline deletarRotasBtn" data-id="${a.id}">Deletar</button>
-              <button class="btn-outline relatorioRotasBtn" data-id="${a.id}" ${Number(a.progresso || 0) < INDICE_ULTIMA_PERGUNTA_ROTAS ? 'disabled' : ''}>📄 Relatório</button>
-              <button id="voltarInicioRotas" class="btn-outline" style="margin-top:0.5rem;">← Voltar ao início</button>
-            </div>
+  <div class="card">
+    <button id="novaRotasBtn" class="btn-primary">➕ Nova Avaliação</button>
+  </div>
+  <div class="card">
+    <h2>Histórico de Avaliações de Rotas</h2>
+    ${avaliacoes.length === 0 ? '<p>Nenhuma avaliação salva.</p>' :
+      avaliacoes.map(a => `
+        <div style="margin:1rem 0; padding:0.5rem 0; border-bottom:1px solid var(--border);">
+          <strong>${escapeHtml(a.escola || 'Escola')}</strong> - ${escapeHtml(a.local || 'Local')}<br>
+          <small>${new Date(a.data).toLocaleString()}</small>
+          <div class="grid-2" style="margin-top:0.5rem;">
+            <button class="btn-secondary continuarRotasBtn" data-id="${a.id}">Continuar</button>
+            <button class="btn-outline deletarRotasBtn" data-id="${a.id}">Deletar</button>
+            <button class="btn-outline relatorioRotasBtn" data-id="${a.id}" ${Number(a.progresso || 0) < INDICE_ULTIMA_PERGUNTA_ROTAS ? 'disabled' : ''}>📄 Relatório</button>
           </div>
-        `).join('')
-      }
-      </div>
-     </div>
+        </div>
+      `).join('')
+    }
+  </div>
+  <div class="card">
+    <button id="voltarInicioRotas" class="btn-outline">← Voltar ao início</button>
+  </div>
   `;
   document.getElementById('main-content').innerHTML = html;
 
@@ -296,7 +352,7 @@ async function renderDashboardRotas() {
 async function iniciarNovaAvaliacaoRotas() {
   let escola = prompt('Nome da escola:*')?.trim();
   if (!escola) return alert('Nome obrigatório');
-  let local = prompt('Local avaliado:*')?.trim();
+  let local = 'Rotas';
   if (!local) return alert('Local obrigatório');
 
   const nova = {
@@ -356,14 +412,6 @@ function renderFormularioRotas() {
       <button id="finalizarRotasTop" class="btn-primary" ${!completo ? 'disabled' : ''}>📋 Finalizar e ver Relatório</button>
     </div>
   `;
-
-  const salvarBottom = document.getElementById('salvarRotasBottom');
-    if (salvarBottom) salvarBottom.onclick = salvarTodasRespostasRotas;
-
-  const finalizarBottom = document.getElementById('finalizarRotasBottom');
-    if (finalizarBottom) finalizarBottom.onclick = () => { 
-    if (formularioCompletoRotas()) mostrarMenuRelatorioRotas(currentAvaliacaoRotas.id); 
-  };
 
   const perguntasPorCategoria = agruparPerguntasRotasPorCategoria();
 
@@ -432,6 +480,8 @@ function renderFormularioRotas() {
     const texto = btn.getAttribute('data-text') || '';
     if (texto) {
       const utterance = new SpeechSynthesisUtterance(texto);
+      utterance.lang = 'pt-BR';
+      utterance.onerror = (err) => console.error('Erro na fala:', err);
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
     }
@@ -489,6 +539,12 @@ function renderFormularioRotas() {
   if (finalizarTop) finalizarTop.onclick = () => { if (formularioCompletoRotas()) mostrarMenuRelatorioRotas(currentAvaliacaoRotas.id); };
   const voltarDashboard = document.getElementById('voltarDashboardRotas');
   if (voltarDashboard) voltarDashboard.onclick = renderDashboardRotas;
+  const salvarBottom = document.getElementById('salvarRotasBottom');
+  if (salvarBottom) salvarBottom.onclick = salvarTodasRespostasRotas;
+  const finalizarBottom = document.getElementById('finalizarRotasBottom');
+  if (finalizarBottom) finalizarBottom.onclick = () => { 
+  if (formularioCompletoRotas()) mostrarMenuRelatorioRotas(currentAvaliacaoRotas.id); 
+  };
 }
 
 async function adicionarImagemRotas(perguntaId, max = 5) {
@@ -501,11 +557,7 @@ async function adicionarImagemRotas(perguntaId, max = 5) {
   input.multiple = true;
   input.onchange = async e => {
     for (const file of e.target.files) {
-      const base64 = await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.readAsDataURL(file);
-      });
+      const base64 = await redimensionarImagemRotas(file, 800, 0.7);
       imagens.push(base64);
       if (imagens.length >= max) break;
     }
