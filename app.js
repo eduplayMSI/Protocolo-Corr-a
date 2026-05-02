@@ -551,7 +551,7 @@ async function adicionarImagens(perguntaId, maxPorPergunta = 5) {
             // O alerta foi removido, a imagem será redimensionada mesmo se for maior que 2MB.
 // (nenhum código aqui)
             try {
-                const base64 = await redimensionarImagem(file, 800, 0.9);
+                const base64 = await redimensionarImagem(file, 800, 0.7);
                 imagensAtuais.push(base64);
             } catch (err) {
                 console.error('Erro ao processar imagem:', err);
