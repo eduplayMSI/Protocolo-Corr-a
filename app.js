@@ -32,50 +32,59 @@ const PROTOCOLO_ITENS = [
   { id: 'obs2', categoria: 'Observações', texto: 'Registro visual (imagens do espaço avaliado)', tipo: 'imagemMultipla' }
 ];
 
-let deferredPrompt = null;
-
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    mostrarBotaoInstalar(true);
-});
-
-function mostrarBotaoInstalar(show) {
-    const btn = document.getElementById('installBtn');
-    if (btn) {
-        btn.style.display = show ? 'inline-flex' : 'none';
-    }
-}
-
-async function instalarApp() {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-        console.log('Usuário aceitou a instalação');
-    } else {
-        console.log('Usuário recusou');
-    }
-    deferredPrompt = null;
-    mostrarBotaoInstalar(false);
-}
-
 const INDICE_ULTIMA_PERGUNTA_PROGRESSO = PROTOCOLO_ITENS.findIndex(item => item.id === 'obs1');
 
 let currentAvaliacao = null;
 let respostasMap = new Map();
 let houveMudancaNaoSalva = false;
-// ========== INSTALAÇÃO DO PWA (CORRIGIDO) ==========
+// ========== INSTALAÇÃO DO PWA ==========
 let deferredInstallPrompt = null;
+
+function setupPWAInstallPrompt() {
+  const installBtn = document.getElementById('installBtn');
+  if (!installBtn) return;
+
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if (isStandalone) {
+    installBtn.style.display = 'none';
+  } else {
+    installBtn.style.display = 'inline-flex';
+  }
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    // Se não estiver instalado, mostra o botão
+    if (!isStandalone && installBtn) installBtn.style.display = 'inline-flex';
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    if (installBtn) installBtn.style.display = 'none';
+  });
+}
 
 async function instalarApp() {
   if (deferredInstallPrompt) {
     deferredInstallPrompt.prompt();
     const { outcome } = await deferredInstallPrompt.userChoice;
-    if (outcome === 'accepted') console.log('Instalação aceita');
+    if (outcome === 'accepted') {
+      console.log('Instalação aceita');
+    }
     deferredInstallPrompt = null;
   } else {
-    alert('Use o menu do navegador: "Adicionar à tela inicial"');
+    // Fallback melhorado: verifica o sistema operacional e orienta
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isAndroid = /Android/.test(navigator.userAgent);
+    let mensagem = '';
+    if (isIOS) {
+      mensagem = '📲 Para instalar no iPhone/iPad: toque no ícone de compartilhar (caixa com seta para cima) e escolha "Adicionar à Tela de Início".';
+    } else if (isAndroid) {
+      mensagem = '📲 Para instalar no Android: abra o menu do navegador (três pontos) e toque em "Instalar aplicativo" ou "Adicionar à tela inicial".';
+    } else {
+      mensagem = '📲 Para instalar este aplicativo, use a opção "Instalar" ou "Adicionar à tela inicial" no menu do seu navegador.';
+    }
+    alert(mensagem);
   }
 }
 
@@ -101,60 +110,6 @@ function injectHomeButton() {
     installBtn.onclick = instalarApp;
     headerDiv.appendChild(installBtn);
   }
-}
-
-function setupPWAInstallPrompt() {
-  // Garantir que o botão de instalação existe
-  let installBtn = document.getElementById('installBtn');
-  if (!installBtn) {
-    const headerDiv = document.querySelector('header .header-actions');
-    if (headerDiv) {
-      installBtn = document.createElement('button');
-      installBtn.id = 'installBtn';
-      installBtn.setAttribute('aria-label', 'Instalar aplicativo');
-      installBtn.innerHTML = '📲';
-      installBtn.style.display = 'none';
-      installBtn.onclick = instalarApp;
-      headerDiv.appendChild(installBtn);
-    }
-  }
-
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-  if (installBtn) installBtn.style.display = isStandalone ? 'none' : 'inline-flex';
-
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredInstallPrompt = e;
-    if (!isStandalone && installBtn) installBtn.style.display = 'inline-flex';
-  });
-
-  window.addEventListener('appinstalled', () => {
-    deferredInstallPrompt = null;
-    if (installBtn) installBtn.style.display = 'none';
-  });
-}
-
-function injectHomeButton() {
-    if (document.getElementById('homeBtn')) return;
-    const headerDiv = document.querySelector('header .header-actions');
-    if (!headerDiv) return;
-
-    const homeBtn = document.createElement('button');
-    homeBtn.id = 'homeBtn';
-    homeBtn.setAttribute('aria-label', 'Início');
-    homeBtn.innerHTML = '<img src="icons/home-icon.png" alt="Início" style="width:32px; height:32px;">';
-    homeBtn.onclick = () => voltarParaInicio();
-    headerDiv.insertBefore(homeBtn, headerDiv.firstChild);
-
-    if (!document.getElementById('installBtn')) {
-        const installBtn = document.createElement('button');
-        installBtn.id = 'installBtn';
-        installBtn.setAttribute('aria-label', 'Instalar App');
-        installBtn.innerHTML = '<img src="icons/install-icon.png" alt="Instalar" style="width:32px; height:32px;">';
-        installBtn.onclick = instalarApp;
-        installBtn.style.display = 'none';
-        headerDiv.appendChild(installBtn);
-    }
 }
 
 function normalizarResposta(resp) {
@@ -365,11 +320,12 @@ async function voltarParaInicio() {
 async function renderDashboard() {
   let avaliacoes = [];
   try {
-    avaliacoes = await listarAvaliacoes();
-    if (!Array.isArray(avaliacoes)) avaliacoes = [];
+  const todas = await listarAvaliacoes();
+  // Filtra: tipo === 'parque' ou tipo não definido (avaliações antigas)
+  avaliacoes = todas.filter(a => a.tipo === 'parque' || !a.tipo);
   } catch (e) {
-    console.warn('Erro ao listar avaliações:', e);
-    avaliacoes = [];
+  console.warn('Erro ao listar avaliações:', e);
+  avaliacoes = [];
   }
 
   const html = `
@@ -390,12 +346,13 @@ async function renderDashboard() {
               <button class="btn-secondary continuarBtn" data-id="${a.id}">Continuar</button>
               <button class="btn-outline deletarBtn" data-id="${a.id}">Deletar</button>
               <button class="btn-outline relatorioBtn btn-relatorio-dashboard" data-id="${a.id}" ${Number(a.progresso || 0) < (INDICE_ULTIMA_PERGUNTA_PROGRESSO + 1) ? 'disabled aria-disabled="true" style="opacity:0.6;pointer-events:none;"' : ''}>📄 Relatório</button>
-              <button id="voltarInicioParque" class="btn-outline" style="margin-top:0.5rem;">← Voltar ao início</button>
-            </div>
+              </div>
           </div>
         `).join('')
       }
     </div>
+    <div class="card">
+    <button id="voltarInicioParque" class="btn-outline" style="margin-top:0.5rem;">← Voltar ao início</button>
   `;
 
   const main = document.getElementById('main-content');
@@ -442,20 +399,15 @@ async function iniciarNovaAvaliacao() {
     if (!escola) alert('O nome da escola é obrigatório.');
   }
 
-  let local = '';
-  while (!local || !local.trim()) {
-    const valor = prompt('Local avaliado (ex: pátio/parque):');
-    if (valor === null) return;
-    local = valor.trim();
-    if (!local) alert('O local avaliado é obrigatório.');
-  }
+  let local = 'Parque';
 
   const nova = {
     escola,
     local,
     data: new Date().toISOString(),
     concluida: false,
-    progresso: 0
+    progresso: 0,
+    tipo: 'parque'
   };
 
   const id = await salvarAvaliacao(nova);
@@ -633,7 +585,7 @@ function atualizarListaImagens(perguntaId) {
     }
 }
 
-async function redimensionarImagem(file, maxWidth = 800, qualidade = 0.7) {
+async function redimensionarImagem(file, maxWidth = 1200, qualidade = 0.9) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = function(e) {
@@ -945,8 +897,8 @@ function bindFormularioEventos() {
       e.stopPropagation();
       const texto = btn.getAttribute('data-text') || '';
       const utterance = new SpeechSynthesisUtterance(texto);
-      utterance.onerror = (e) => console.error('Erro na síntese de fala:', e);
       utterance.lang = 'pt-BR';
+      utterance.onerror = (e) => console.error('Erro na síntese de fala:', e);
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
     };
@@ -1397,6 +1349,9 @@ async function renderPaginaInicial() {
       <button id="btnRotas" class="btn-modulo">🚶 Avaliação de Rotas</button>
       <button id="btnParque" class="btn-modulo">🪁 Avaliação do Parque</button>
     </div>
+    <div class="card" style="margin-top: 1rem; text-align: center; font-size: 0.8rem;">
+    ⚡ Este app funciona offline. Para instalar, use o menu do navegador → "Instalar aplicativo" ou "Adicionar à tela inicial".
+  </div>
   `;
 
   // Eventos dos botões
