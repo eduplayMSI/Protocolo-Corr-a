@@ -633,7 +633,7 @@ function atualizarListaImagens(perguntaId) {
     }
 }
 
-async function redimensionarImagem(file, maxWidth = 1200, qualidade = 0.9) {
+async function redimensionarImagem(file, maxWidth = 800, qualidade = 0.7) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = function(e) {
